@@ -47,32 +47,16 @@ contract WCHI is IWCHI
   mapping (address => mapping (address => uint256)) public override allowance;
 
   /**
-   * @dev Data stored about an active HTLC.
+   * @dev Hashes of all currently active HTLCs.  Each HTLC consists of
+   * its value in tokens, a sender and receiver address, a timestamp for when
+   * it times out, and a hash value with which the receiver can redeem it.
+   *
+   * These pieces of data are hashed together to produce an ID, which is
+   * stored here in a set.  This way, the contract can verify any claims about
+   * active HTLCs, while not having to store all the corresponding data
+   * itself in contract storage.
    */
-  struct HTLC
-  {
-    /* Token value of the HTLC.  */
-    uint256 value;
-
-    /* Who gets refunded in case of timeout.  */
-    address from;
-    /* Who can claim the funds with the preimage.  */
-    address to;
-
-    /* Block timestamp when the HTLC times out.  */
-    uint timeout;
-    /* Hash preimage for a claim.  */
-    bytes20 hash;
-  }
-
-  /** @dev Active (not yet finished) HTLCs keyed with their ID.  */
-  mapping (uint => HTLC) public htlcById;
-
-  /**
-   * @dev Total number of HTLCs created to far, including finished ones.
-   * This is used to generate consecutive IDs.
-   */
-  uint public htlcCount;
+  mapping (bytes32 => bool) public htlcActive;
 
   /**
    * @dev In the constructor, we grant the contract creator the initial balance.
@@ -87,6 +71,9 @@ contract WCHI is IWCHI
     balanceOf[msg.sender] = initialSupply;
     emit Transfer (address (0), msg.sender, initialSupply);
   }
+
+  /* ************************************************************************ */
+  /* Core token functions.  */
 
   /**
    * @dev Sets the allowance afforded to the given spender by
@@ -174,6 +161,9 @@ contract WCHI is IWCHI
     balanceOf[from] = balance - value;
   }
 
+  /* ************************************************************************ */
+  /* HTLC functionality.  */
+
   /**
    * @dev Returns the hash used for HTLCs.  We use RIPEMD160, to be
    * compatible with HTLCs from BOLT 03 (Lightning).
@@ -184,19 +174,29 @@ contract WCHI is IWCHI
   }
 
   /**
-   * @dev Creates a new HTLC and returns its ID.
+   * @dev Computes and returns the ID that we use internally to refer
+   * to an HTLC with the given data.  This is a hash value of the data,
+   * so commits to the HTLC's content.
+   */
+  function htlcId (address from, address to, uint256 value,
+                   uint timeout, bytes20 hash)
+      public override pure returns (bytes32)
+  {
+    return keccak256 (abi.encodePacked (from, to, value, timeout, hash));
+  }
+
+  /**
+   * @dev Creates a new HTLC, locking the tokens and marking its hash as active.
    */
   function htlcCreate (address to, uint256 value, uint timeout, bytes20 hash)
-      external override returns (uint)
+      external override returns (bytes32)
   {
-    require (value > 0, "WCHI: HTLC value is zero");
+    bytes32 id = htlcId (msg.sender, to, value, timeout, hash);
+    require (!htlcActive[id], "WCHI: HTLC with this data is already active");
+
     deductBalance (msg.sender, value);
-
-    uint id = htlcCount;
-    htlcCount = id + 1;
-
-    htlcById[id] = HTLC (value, msg.sender, to, timeout, hash);
-    emit HtlcCreated (id, msg.sender, to, value);
+    htlcActive[id] = true;
+    emit HtlcCreated (id, msg.sender, to, value, timeout, hash);
 
     balanceOf[htlcAddress] += value;
     emit Transfer (msg.sender, htlcAddress, value);
@@ -209,21 +209,22 @@ contract WCHI is IWCHI
    * execute the transaction, and will pay back to the original sender
    * who locked the tokens.
    */
-  function htlcTimeout (uint id) external override
+  function htlcTimeout (address from, address to, uint256 value,
+                        uint timeout, bytes20 hash) external override
   {
-    HTLC memory entry = htlcById[id];
-
-    require (entry.value > 0, "WCHI: HTLC does not exist");
-    require (block.timestamp >= entry.timeout,
+    require (block.timestamp >= timeout,
              "WCHI: HTLC is not yet timed out");
 
-    delete htlcById[id];
-    deductBalance (htlcAddress, entry.value);
-    emit HtlcTimeout (id, entry.from, entry.value);
+    bytes32 id = htlcId (from, to, value, timeout, hash);
+    require (htlcActive[id], "WCHI: HTLC with this data is not active");
+
+    delete htlcActive[id];
+    deductBalance (htlcAddress, value);
+    emit HtlcTimeout (id, from, to, value, timeout, hash);
 
     /* Refund the amount back to the sender.  */
-    balanceOf[entry.from] += entry.value;
-    emit Transfer (htlcAddress, entry.from, entry.value);
+    balanceOf[from] += value;
+    emit Transfer (htlcAddress, from, value);
   }
 
   /**
@@ -231,20 +232,23 @@ contract WCHI is IWCHI
    * called by anyone willing to pay for execution, and will send the tokens
    * always to the HTLC's receiver.
    */
-  function htlcRedeem (uint id, bytes memory preimage) external override
+  function htlcRedeem (address from, address to, uint256 value,
+                       uint timeout, bytes memory preimage) external override
   {
-    HTLC memory entry = htlcById[id];
+    bytes20 hash = htlcHash (preimage);
+    bytes32 id = htlcId (from, to, value, timeout, hash);
+    /* Since we compute the hash from the preimage, and then the HTLC ID
+       from the hash, the check below automatically verifies that the
+       sender knows a preimage to the HTLC.  */
+    require (htlcActive[id], "WCHI: HTLC with this data is not active");
 
-    require (entry.value > 0, "WCHI: HTLC does not exist");
-    require (htlcHash (preimage) == entry.hash, "WCHI: preimage mismatch");
-
-    delete htlcById[id];
-    deductBalance (htlcAddress, entry.value);
-    emit HtlcRedeemed (id);
+    delete htlcActive[id];
+    deductBalance (htlcAddress, value);
+    emit HtlcRedeemed (id, from, to, value, timeout, hash);
 
     /* Send the tokens to the receiver.  */
-    balanceOf[entry.to] += entry.value;
-    emit Transfer (htlcAddress, entry.to, entry.value);
+    balanceOf[to] += value;
+    emit Transfer (htlcAddress, to, value);
   }
 
 }

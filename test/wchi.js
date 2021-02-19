@@ -122,20 +122,17 @@ contract ("WCHI", accounts => {
 
     await wchi.htlcCreate (accounts[2], 10, 0, "0x01", {from: accounts[1]});
     await truffleAssert.reverts (
-        wchi.htlcCreate (accounts[2], 0, 0, "0x00", {from: accounts[1]}),
-        "value is zero");
-    await truffleAssert.reverts (
         wchi.htlcCreate (accounts[2], 91, 0, "0x00", {from: accounts[1]}),
         "insufficient balance");
+    await truffleAssert.reverts (
+        wchi.htlcCreate (accounts[2], 10, 0, "0x01", {from: accounts[1]}),
+        "is already active");
     await wchi.htlcCreate (accounts[3], 20, 42, "0x02", {from: accounts[1]});
-    assert.equal ((await wchi.htlcCount ()).toNumber (), 2);
 
-    const entry = await wchi.htlcById (1);
-    assert.equal (entry["from"], accounts[1]);
-    assert.equal (entry["to"], accounts[3]);
-    assert.equal (entry["value"].toNumber (), 20);
-    assert.equal (entry["timeout"].toNumber (), 42);
-    assert.equal (entry["hash"], "0x0200000000000000000000000000000000000000");
+    const id1 = await wchi.htlcId (accounts[1], accounts[2], 10, 0, "0x01");
+    const id2 = await wchi.htlcId (accounts[1], accounts[2], 10, 1, "0x01");
+    assert.isTrue (await wchi.htlcActive (id1));
+    assert.isFalse (await wchi.htlcActive (id2));
 
     assert.equal ((await wchi.balanceOf (accounts[1])).toNumber (), 70);
     assert.equal ((await wchi.balanceOf (accounts[2])).toNumber (), 0);
@@ -154,18 +151,29 @@ contract ("WCHI", accounts => {
     await wchi.htlcCreate (accounts[2], 20, now + 1000, "0x01",
                            {from: accounts[1]});
 
-    await wchi.htlcTimeout (0);
-    await truffleAssert.reverts (wchi.htlcTimeout (42), "HTLC does not exist");
-    await truffleAssert.reverts (wchi.htlcTimeout (1), "not yet timed out");
+    await truffleAssert.reverts (
+        wchi.htlcTimeout (accounts[1], accounts[2], 10, now - 1, "0x01"),
+        "is not active");
+    await wchi.htlcTimeout (accounts[1], accounts[2], 10, now - 1000, "0x01");
+    await truffleAssert.reverts (
+        wchi.htlcTimeout (accounts[1], accounts[2], 10, now - 1000, "0x01"),
+        "is not active");
+    await truffleAssert.reverts (
+        wchi.htlcTimeout (accounts[1], accounts[2], 10, now + 1000,  "0x01"),
+        "not yet timed out");
+
+    const id1 = await wchi.htlcId (accounts[1], accounts[2], 10,
+                                   now - 1000, "0x01");
+    const id2 = await wchi.htlcId (accounts[1], accounts[2], 20,
+                                   now + 1000, "0x01");
+    assert.isFalse (await wchi.htlcActive (id1));
+    assert.isTrue (await wchi.htlcActive (id2));
 
     assert.equal ((await wchi.balanceOf (accounts[1])).toNumber (), 80);
     assert.equal ((await wchi.balanceOf (accounts[2])).toNumber (), 0);
     assert.equal ((await wchi.balanceOf (htlcAddress)).toNumber (), 20);
 
     assert.equal (await wchi.totalSupply (), supply);
-
-    assert.equal ((await wchi.htlcById (0)).value.toNumber (), 0);
-    assert.isAbove ((await wchi.htlcById (1)).value.toNumber (), 0);
   });
 
   it ("should handle HTLC redeems", async () => {
@@ -174,17 +182,20 @@ contract ("WCHI", accounts => {
     const hash = await wchi.htlcHash ("0x01");
     await wchi.htlcCreate (accounts[2], 10, 0, hash, {from: accounts[1]});
 
-    await truffleAssert.reverts (wchi.htlcRedeem (0, "0x02"),
-                                 "preimage mismatch");
-    wchi.htlcRedeem (0, "0x01");
+    await truffleAssert.reverts (
+        wchi.htlcRedeem (accounts[1], accounts[2], 10, 0, "0x02"),
+        "is not active");
+    wchi.htlcRedeem (accounts[1], accounts[2], 10, 0, "0x01");
+
+    const id = await wchi.htlcId (accounts[1], accounts[2], 10,
+                                  0, hash);
+    assert.isFalse (await wchi.htlcActive (id));
 
     assert.equal ((await wchi.balanceOf (accounts[1])).toNumber (), 90);
     assert.equal ((await wchi.balanceOf (accounts[2])).toNumber (), 10);
     assert.equal ((await wchi.balanceOf (htlcAddress)).toNumber (), 0);
 
     assert.equal (await wchi.totalSupply (), supply);
-
-    assert.equal ((await wchi.htlcById (0)).value.toNumber (), 0);
   });
 
   /* ************************************************************************ */
