@@ -9,16 +9,17 @@ const zeroAddr = "0x0000000000000000000000000000000000000000";
 const maxUint256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
 contract ("WCHI", accounts => {
-  let wchi;
+  let wchi, htlcAddress, supply;
   beforeEach (async () => {
     wchi = await WCHI.new ({from: accounts[0]});
+    htlcAddress = await wchi.htlcAddress ();
+    supply = (await wchi.totalSupply ()).toNumber ();
   });
 
   /* ************************************************************************ */
   /* Basic token functionality.  */
 
   it ("should assign initial balance", async () => {
-    const supply = (await wchi.totalSupply ()).toNumber ();
     const bal0 = (await wchi.balanceOf (accounts[0])).toNumber ();
     const bal1 = (await wchi.balanceOf (accounts[1])).toNumber ();
     assert.isAbove (supply, 0);
@@ -28,9 +29,11 @@ contract ("WCHI", accounts => {
 
   it ("should transfer tokens", async () => {
     await wchi.transfer (accounts[1], 100, {from: accounts[0]});
+
     await wchi.transfer (accounts[2], 10, {from: accounts[1]});
     await wchi.transfer (accounts[3], 20, {from: accounts[1]});
     await wchi.transfer (accounts[4], 70, {from: accounts[1]});
+
     assert.equal ((await wchi.balanceOf (accounts[1])).toNumber (), 0);
     assert.equal ((await wchi.balanceOf (accounts[2])).toNumber (), 10);
     assert.equal ((await wchi.balanceOf (accounts[3])).toNumber (), 20);
@@ -39,6 +42,7 @@ contract ("WCHI", accounts => {
 
   it ("should not transfer tokens", async () => {
     await wchi.transfer (accounts[1], 100, {from: accounts[0]});
+
     await truffleAssert.reverts (
         wchi.transfer (accounts[2], 101, {from: accounts[1]}),
         "insufficient balance");
@@ -48,20 +52,26 @@ contract ("WCHI", accounts => {
     await truffleAssert.reverts (
         wchi.transfer (wchi.address, 10, {from: accounts[1]}),
         "contract address");
+    await truffleAssert.reverts (
+        wchi.transfer (await wchi.htlcAddress (), 10, {from: accounts[1]}),
+        "contract address");
+
     assert.equal ((await wchi.balanceOf (accounts[1])).toNumber (), 100);
     assert.equal ((await wchi.balanceOf (accounts[2])).toNumber (), 0);
   });
 
   it ("should burn tokens", async () => {
     await wchi.transfer (accounts[1], 100, {from: accounts[0]});
-    const initialSupply = (await wchi.totalSupply ()).toNumber ();
+
     await wchi.burn (10, {from: accounts[1]});
     await truffleAssert.reverts (wchi.burn (91, {from: accounts[1]}),
                                  "insufficient balance");
+
     assert.equal ((await wchi.balanceOf (accounts[1])).toNumber (), 90);
     assert.equal ((await wchi.balanceOf (zeroAddr)).toNumber (), 0);
+
     const newSupply = (await wchi.totalSupply ()).toNumber ();
-    assert.equal (newSupply, initialSupply - 10);
+    assert.equal (newSupply, supply - 10);
   });
 
   /* ************************************************************************ */
@@ -130,6 +140,9 @@ contract ("WCHI", accounts => {
     assert.equal ((await wchi.balanceOf (accounts[1])).toNumber (), 70);
     assert.equal ((await wchi.balanceOf (accounts[2])).toNumber (), 0);
     assert.equal ((await wchi.balanceOf (accounts[3])).toNumber (), 0);
+    assert.equal ((await wchi.balanceOf (htlcAddress)).toNumber (), 30);
+
+    assert.equal (await wchi.totalSupply (), supply);
   });
 
   it ("should handle HTLC timeouts", async () => {
@@ -147,6 +160,9 @@ contract ("WCHI", accounts => {
 
     assert.equal ((await wchi.balanceOf (accounts[1])).toNumber (), 80);
     assert.equal ((await wchi.balanceOf (accounts[2])).toNumber (), 0);
+    assert.equal ((await wchi.balanceOf (htlcAddress)).toNumber (), 20);
+
+    assert.equal (await wchi.totalSupply (), supply);
 
     assert.equal ((await wchi.htlcById (0)).value.toNumber (), 0);
     assert.isAbove ((await wchi.htlcById (1)).value.toNumber (), 0);
@@ -164,6 +180,9 @@ contract ("WCHI", accounts => {
 
     assert.equal ((await wchi.balanceOf (accounts[1])).toNumber (), 90);
     assert.equal ((await wchi.balanceOf (accounts[2])).toNumber (), 10);
+    assert.equal ((await wchi.balanceOf (htlcAddress)).toNumber (), 0);
+
+    assert.equal (await wchi.totalSupply (), supply);
 
     assert.equal ((await wchi.htlcById (0)).value.toNumber (), 0);
   });

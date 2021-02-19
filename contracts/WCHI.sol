@@ -20,6 +20,11 @@ contract WCHI is IWCHI
   uint8 public constant decimals = 8;
 
   /**
+   * @dev The address that holds tokens currently locked into HTLCs.
+   */
+  address public immutable htlcAddress;
+
+  /**
    * @dev Initial supply of tokens minted.  This is a bit larger than the
    * real total supply of CHI.
    */
@@ -76,6 +81,8 @@ contract WCHI is IWCHI
    */
   constructor ()
   {
+    htlcAddress = address (this);
+
     totalSupply = initialSupply;
     balanceOf[msg.sender] = initialSupply;
     emit Transfer (address (0), msg.sender, initialSupply);
@@ -191,6 +198,9 @@ contract WCHI is IWCHI
     htlcById[id] = HTLC (value, msg.sender, to, timeout, hash);
     emit HtlcCreated (id, msg.sender, to, value);
 
+    balanceOf[htlcAddress] += value;
+    emit Transfer (msg.sender, htlcAddress, value);
+
     return id;
   }
 
@@ -208,10 +218,12 @@ contract WCHI is IWCHI
              "WCHI: HTLC is not yet timed out");
 
     delete htlcById[id];
+    deductBalance (htlcAddress, entry.value);
     emit HtlcTimeout (id, entry.from, entry.value);
 
     /* Refund the amount back to the sender.  */
     balanceOf[entry.from] += entry.value;
+    emit Transfer (htlcAddress, entry.from, entry.value);
   }
 
   /**
@@ -227,11 +239,12 @@ contract WCHI is IWCHI
     require (htlcHash (preimage) == entry.hash, "WCHI: preimage mismatch");
 
     delete htlcById[id];
+    deductBalance (htlcAddress, entry.value);
     emit HtlcRedeemed (id);
 
     /* Send the tokens to the receiver.  */
     balanceOf[entry.to] += entry.value;
-    emit Transfer (entry.from, entry.to, entry.value);
+    emit Transfer (htlcAddress, entry.to, entry.value);
   }
 
 }
