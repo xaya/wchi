@@ -12,6 +12,11 @@ interface IWCHI is IERC20
 {
 
   /**
+   * @dev Burns the given number of tokens, reducing total supply.
+   */
+  function burn (uint256 value) external;
+
+  /**
    * @dev Returns the hash used in HTLCs of the given data.
    */
   function htlcHash (bytes memory data) external pure returns (bytes20);

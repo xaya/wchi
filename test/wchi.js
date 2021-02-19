@@ -43,8 +43,11 @@ contract ("WCHI", accounts => {
         wchi.transfer (accounts[2], 101, {from: accounts[1]}),
         "insufficient balance");
     await truffleAssert.reverts (
-        wchi.transfer (zeroAddr, 101, {from: accounts[1]}),
-        "insufficient balance");
+        wchi.transfer (zeroAddr, 10, {from: accounts[1]}),
+        "zero address");
+    await truffleAssert.reverts (
+        wchi.transfer (wchi.address, 10, {from: accounts[1]}),
+        "contract address");
     assert.equal ((await wchi.balanceOf (accounts[1])).toNumber (), 100);
     assert.equal ((await wchi.balanceOf (accounts[2])).toNumber (), 0);
   });
@@ -52,8 +55,11 @@ contract ("WCHI", accounts => {
   it ("should burn tokens", async () => {
     await wchi.transfer (accounts[1], 100, {from: accounts[0]});
     const initialSupply = (await wchi.totalSupply ()).toNumber ();
-    await wchi.transfer (zeroAddr, 10, {from: accounts[1]});
+    await wchi.burn (10, {from: accounts[1]});
+    await truffleAssert.reverts (wchi.burn (91, {from: accounts[1]}),
+                                 "insufficient balance");
     assert.equal ((await wchi.balanceOf (accounts[1])).toNumber (), 90);
+    assert.equal ((await wchi.balanceOf (zeroAddr)).toNumber (), 0);
     const newSupply = (await wchi.totalSupply ()).toNumber ();
     assert.equal (newSupply, initialSupply - 10);
   });

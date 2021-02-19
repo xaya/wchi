@@ -100,7 +100,8 @@ contract WCHI is IWCHI
    */
   function transfer (address to, uint256 value) external override returns (bool)
   {
-    return uncheckedTransfer (msg.sender, to, value);
+    uncheckedTransfer (msg.sender, to, value);
+    return true;
   }
 
   /**
@@ -124,7 +125,8 @@ contract WCHI is IWCHI
           }
       }
 
-    return uncheckedTransfer (from, to, value);
+    uncheckedTransfer (from, to, value);
+    return true;
   }
 
   /**
@@ -132,25 +134,26 @@ contract WCHI is IWCHI
    * and transferFrom, and does not check that the sender is actually
    * allowed to spend the tokens.
    */
-  function uncheckedTransfer (address from, address to, uint256 value)
-      internal returns (bool)
+  function uncheckedTransfer (address from, address to, uint256 value) internal
   {
-    deductBalance (from, value);
+    require (to != address (0), "WCHI: transfer to zero address");
+    require (to != address (this), "WCHI: transfer to contract address");
 
-    if (to == address (0))
-      {
-        /* Tokens are burnt.  */
-        assert (totalSupply >= value);
-        totalSupply -= value;
-      }
-    else
-      {
-        /* Tokens are transferred to the receiver.  */
-        balanceOf[to] += value;
-      }
+    deductBalance (from, value);
+    balanceOf[to] += value;
 
     emit Transfer (from, to, value);
-    return true;
+  }
+
+  /**
+   * @dev Burns tokens from the sender's balance, reducing total supply.
+   */
+  function burn (uint256 value) external override
+  {
+    deductBalance (msg.sender, value);
+    assert (totalSupply >= value);
+    totalSupply -= value;
+    emit Transfer (msg.sender, address (0), value);
   }
 
   /**
