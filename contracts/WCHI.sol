@@ -17,12 +17,9 @@ contract WCHI is IWCHI
 
   string public constant name = "Wrapped CHI";
   string public constant symbol = "WCHI";
-  uint8 public constant decimals = 8;
 
-  /**
-   * @dev The address that holds tokens currently locked into HTLCs.
-   */
-  address public immutable htlcAddress;
+  /** @dev Native CHI has 8 decimals (like BTC), we mimic that here.  */
+  uint8 public constant decimals = 8;
 
   /**
    * @dev Initial supply of tokens minted.  This is a bit larger than the
@@ -47,33 +44,16 @@ contract WCHI is IWCHI
   mapping (address => mapping (address => uint256)) public override allowance;
 
   /**
-   * @dev Hashes of all currently active HTLCs.  Each HTLC consists of
-   * its value in tokens, a sender and receiver address, a timestamp for when
-   * it times out, and a hash value with which the receiver can redeem it.
-   *
-   * These pieces of data are hashed together to produce an ID, which is
-   * stored here in a set.  This way, the contract can verify any claims about
-   * active HTLCs, while not having to store all the corresponding data
-   * itself in contract storage.
-   */
-  mapping (bytes32 => bool) public htlcActive;
-
-  /**
    * @dev In the constructor, we grant the contract creator the initial balance.
    * This is the only place where any address has special rights compared
    * to all others.
    */
   constructor ()
   {
-    htlcAddress = address (this);
-
     totalSupply = initialSupply;
     balanceOf[msg.sender] = initialSupply;
     emit Transfer (address (0), msg.sender, initialSupply);
   }
-
-  /* ************************************************************************ */
-  /* Core token functions.  */
 
   /**
    * @dev Sets the allowance afforded to the given spender by
@@ -159,96 +139,6 @@ contract WCHI is IWCHI
     uint256 balance = balanceOf[from];
     require (balance >= value, "WCHI: insufficient balance");
     balanceOf[from] = balance - value;
-  }
-
-  /* ************************************************************************ */
-  /* HTLC functionality.  */
-
-  /**
-   * @dev Returns the hash used for HTLCs.  We use RIPEMD160, to be
-   * compatible with HTLCs from BOLT 03 (Lightning).
-   */
-  function htlcHash (bytes memory data) public override pure returns (bytes20)
-  {
-    return ripemd160 (data);
-  }
-
-  /**
-   * @dev Computes and returns the ID that we use internally to refer
-   * to an HTLC with the given data.  This is a hash value of the data,
-   * so commits to the HTLC's content.
-   */
-  function htlcId (address from, address to, uint256 value,
-                   uint timeout, bytes20 hash)
-      public override pure returns (bytes32)
-  {
-    return keccak256 (abi.encodePacked (from, to, value, timeout, hash));
-  }
-
-  /**
-   * @dev Creates a new HTLC, locking the tokens and marking its hash as active.
-   */
-  function htlcCreate (address to, uint256 value, uint timeout, bytes20 hash)
-      external override returns (bytes32)
-  {
-    bytes32 id = htlcId (msg.sender, to, value, timeout, hash);
-    require (!htlcActive[id], "WCHI: HTLC with this data is already active");
-
-    deductBalance (msg.sender, value);
-    htlcActive[id] = true;
-    emit HtlcCreated (id, msg.sender, to, value, timeout, hash);
-
-    balanceOf[htlcAddress] += value;
-    emit Transfer (msg.sender, htlcAddress, value);
-
-    return id;
-  }
-
-  /**
-   * @dev Times out an HTLC.  This can be called by anyone who wants to
-   * execute the transaction, and will pay back to the original sender
-   * who locked the tokens.
-   */
-  function htlcTimeout (address from, address to, uint256 value,
-                        uint timeout, bytes20 hash) external override
-  {
-    require (block.timestamp >= timeout,
-             "WCHI: HTLC is not yet timed out");
-
-    bytes32 id = htlcId (from, to, value, timeout, hash);
-    require (htlcActive[id], "WCHI: HTLC with this data is not active");
-
-    delete htlcActive[id];
-    deductBalance (htlcAddress, value);
-    emit HtlcTimeout (id, from, to, value, timeout, hash);
-
-    /* Refund the amount back to the sender.  */
-    balanceOf[from] += value;
-    emit Transfer (htlcAddress, from, value);
-  }
-
-  /**
-   * @dev Redeems an HTLC with its preimage to the receiver.  This can be
-   * called by anyone willing to pay for execution, and will send the tokens
-   * always to the HTLC's receiver.
-   */
-  function htlcRedeem (address from, address to, uint256 value,
-                       uint timeout, bytes memory preimage) external override
-  {
-    bytes20 hash = htlcHash (preimage);
-    bytes32 id = htlcId (from, to, value, timeout, hash);
-    /* Since we compute the hash from the preimage, and then the HTLC ID
-       from the hash, the check below automatically verifies that the
-       sender knows a preimage to the HTLC.  */
-    require (htlcActive[id], "WCHI: HTLC with this data is not active");
-
-    delete htlcActive[id];
-    deductBalance (htlcAddress, value);
-    emit HtlcRedeemed (id, from, to, value, timeout, hash);
-
-    /* Send the tokens to the receiver.  */
-    balanceOf[to] += value;
-    emit Transfer (htlcAddress, to, value);
   }
 
 }
