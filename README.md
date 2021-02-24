@@ -19,3 +19,13 @@ provide a contract for
 With this, it is possible to implement atomic and trustless cross-chain swaps
 between WCHI tokens on Ethereum and native CHI coins on the Xaya blockchain or
 a future Lightning implementation.
+
+## Deployment
+
+### Ropsten Testnet
+
+The contracts have been deployed to the Ropsten testnet at the following
+addresses:
+
+- WCHI: [0x39d1276C5421d3A9f8367F0C071DB4af242f5D8f](https://ropsten.etherscan.io/address/0x39d1276c5421d3a9f8367f0c071db4af242f5d8f)
+- HTLCs: [0x6DC02164d75651758aC74435806093E421b64605](https://ropsten.etherscan.io/address/0x6dc02164d75651758ac74435806093e421b64605)
