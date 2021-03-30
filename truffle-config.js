@@ -24,5 +24,6 @@ module.exports = {
       network_id: 3,
       gas: 4000000
     }
-  }
+  },
+  plugins: ["solidity-coverage"]
 };
