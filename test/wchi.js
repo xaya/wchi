@@ -4,6 +4,7 @@
 const WCHI = artifacts.require ("WCHI");
 
 const truffleAssert = require ("truffle-assertions");
+const BigNumber = require ("bignumber.js");
 
 const zeroAddr = "0x0000000000000000000000000000000000000000";
 const maxUint256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
@@ -102,6 +103,39 @@ contract ("WCHI", accounts => {
     assert.equal ((await wchi.balanceOf (accounts[2])).toNumber (), 0);
     assert.equal ((await wchi.balanceOf (accounts[3])).toNumber (), 7);
     assert.equal ((await wchi.balanceOf (accounts[4])).toNumber (), 90);
+  });
+
+  it ("should handle allowance increase/decrease", async () => {
+    await wchi.approve (accounts[3], 10, {from: accounts[1]});
+    await wchi.increaseAllowance (accounts[2], 5, {from: accounts[1]});
+    await wchi.increaseAllowance (accounts[3], 1, {from: accounts[1]});
+    assert.equal ((await wchi.allowance (accounts[1], accounts[2])).toNumber (),
+                  5);
+    assert.equal ((await wchi.allowance (accounts[1], accounts[3])).toNumber (),
+                  11);
+
+    await wchi.decreaseAllowance (accounts[2], 3, {from: accounts[1]});
+    await wchi.decreaseAllowance (accounts[3], 100, {from: accounts[1]});
+    assert.equal ((await wchi.allowance (accounts[1], accounts[2])).toNumber (),
+                  2);
+    assert.equal ((await wchi.allowance (accounts[1], accounts[3])).toNumber (),
+                  0);
+
+    const bnMax = new BigNumber (maxUint256);
+    await wchi.increaseAllowance (accounts[3], bnMax.minus (1),
+                                  {from: accounts[1]});
+    await truffleAssert.reverts (
+        wchi.increaseAllowance (accounts[2], bnMax.minus (1),
+                                {from: accounts[1]}),
+        "increase allowance overflow");
+    await truffleAssert.reverts (
+        wchi.increaseAllowance (accounts[3], 1, {from: accounts[1]}),
+        "increase allowance overflow");
+    assert.equal ((await wchi.allowance (accounts[1], accounts[2])).toNumber (),
+                  2);
+    assert.isTrue (
+        new BigNumber (await wchi.allowance (accounts[1], accounts[3]))
+            .isEqualTo (bnMax.minus (1).toString ()));
   });
 
 });

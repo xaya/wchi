@@ -62,8 +62,7 @@ contract WCHI is IWCHI
   function approve (address spender, uint256 value)
       external override returns (bool)
   {
-    allowance[msg.sender][spender] = value;
-    emit Approval (msg.sender, spender, value);
+    setApproval (msg.sender, spender, value);
     return true;
   }
 
@@ -94,8 +93,7 @@ contract WCHI is IWCHI
           {
             require (allowed >= value, "WCHI: allowance exceeded");
             uint256 newAllowed = allowed - value;
-            allowance[from][msg.sender] = newAllowed;
-            emit Approval (from, msg.sender, newAllowed);
+            setApproval (from, msg.sender, newAllowed);
           }
       }
 
@@ -131,6 +129,41 @@ contract WCHI is IWCHI
   }
 
   /**
+   * @dev Increases the allowance of a given spender by a certain
+   * amount (rather than explicitly setting the new allowance).  This fails
+   * if the new allowance would be at infinity (or overflow).
+   */
+  function increaseAllowance (address spender, uint256 addedValue)
+      external override returns (bool)
+  {
+    uint256 allowed = allowance[msg.sender][spender];
+
+    uint256 increaseToInfinity = type (uint256).max - allowed;
+    require (addedValue < increaseToInfinity,
+             "WCHI: increase allowance overflow");
+
+    setApproval (msg.sender, spender, allowed + addedValue);
+    return true;
+  }
+
+  /**
+   * @dev Decreases the allowance of a given spender by a certain value.
+   * If the value is more than the current allowance, it is set to zero.
+   */
+  function decreaseAllowance (address spender, uint256 removedValue)
+      external override returns (bool)
+  {
+    uint256 allowed = allowance[msg.sender][spender];
+
+    if (removedValue >= allowed)
+      setApproval (msg.sender, spender, 0);
+    else
+      setApproval (msg.sender, spender, allowed - removedValue);
+
+    return true;
+  }
+
+  /**
    * @dev Internal helper function to check the balance of the given user
    * and deduct the given amount.
    */
@@ -139,6 +172,16 @@ contract WCHI is IWCHI
     uint256 balance = balanceOf[from];
     require (balance >= value, "WCHI: insufficient balance");
     balanceOf[from] = balance - value;
+  }
+
+  /**
+   * @dev Internal helper function to explicitly set the allowance of
+   * a spender without any checks, and emit the Approval event.
+   */
+  function setApproval (address owner, address spender, uint256 value) internal
+  {
+    allowance[owner][spender] = value;
+    emit Approval (owner, spender, value);
   }
 
 }

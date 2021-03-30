@@ -16,4 +16,16 @@ interface IWCHI is IERC20
    */
   function burn (uint256 value) external;
 
+  /**
+   * @dev Increases the allowance of a given spender by the given amount.
+   */
+  function increaseAllowance (address spender, uint256 addedValue)
+      external returns (bool);
+
+  /**
+   * @dev Decreases the allowance of a given spender by the given amount.
+   */
+  function decreaseAllowance (address spender, uint256 removedValue)
+      external returns (bool);
+
 }
