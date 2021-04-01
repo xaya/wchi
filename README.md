@@ -42,6 +42,21 @@ On Ethereum mainnet, the contracts are at these addresses:
 - WCHI: [0x39d1276C5421d3A9f8367F0C071DB4af242f5D8f](https://goerli.etherscan.io/address/0x39d1276c5421d3a9f8367f0c071db4af242f5d8f)
 - HTLCs: [0x6DC02164d75651758aC74435806093E421b64605](https://goerli.etherscan.io/address/0x6dc02164d75651758ac74435806093e421b64605)
 
+### Matic Network
+
+We have deployed the HTLC contract natively on the Matic mainnet, and
+WCHI is deployed as a standard contract for the Matic PoS bridge:
+
+- WCHI: [0xE79feAAA457ad7899357E8E2065a3267aC9eE601](https://explorer-mainnet.maticvigil.com/address/0xE79feAAA457ad7899357E8E2065a3267aC9eE601)
+- HTLCs: [0xd1Ca5b7102E6Eca25AA259c1Ab4466BdC8C5bB58](https://explorer-mainnet.maticvigil.com/address/0xd1Ca5b7102E6Eca25AA259c1Ab4466BdC8C5bB58)
+
+#### Mumbai Testnet
+
+On the Mumbai testnet for Matic, the contracts are these:
+
+- WCHI: [0x35AAfF0B6B0540a667A7f726d86A7644f6A6Eee8](https://explorer-mumbai.maticvigil.com/address/0x35AAfF0B6B0540a667A7f726d86A7644f6A6Eee8)
+- HTLCs: [0x39d1276C5421d3A9f8367F0C071DB4af242f5D8f](https://explorer-mumbai.maticvigil.com/address/0x39d1276C5421d3A9f8367F0C071DB4af242f5D8f)
+
 ### xDai
 
 On xDai, we have deployed the HTLC contract natively, and WCHI through
