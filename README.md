@@ -41,3 +41,11 @@ On Ethereum mainnet, the contracts are at these addresses:
 
 - WCHI: [0x39d1276C5421d3A9f8367F0C071DB4af242f5D8f](https://goerli.etherscan.io/address/0x39d1276c5421d3a9f8367f0c071db4af242f5d8f)
 - HTLCs: [0x6DC02164d75651758aC74435806093E421b64605](https://goerli.etherscan.io/address/0x6dc02164d75651758ac74435806093e421b64605)
+
+### xDai
+
+On xDai, we have deployed the HTLC contract natively, and WCHI through
+use of the [OmniBridge](https://omni.xdaichain.com/bridge).  The addresses are:
+
+- WCHI: [0x7211ab649A4139561a152B787de52D257cbAAee9](https://blockscout.com/xdai/mainnet/address/0x7211ab649A4139561a152B787de52D257cbAAee9)
+- HTLCs: [0x39d1276C5421d3A9f8367F0C071DB4af242f5D8f](https://blockscout.com/xdai/mainnet/address/0x39d1276C5421d3A9f8367F0C071DB4af242f5D8f)

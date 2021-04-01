@@ -1,5 +1,8 @@
 var HDWalletProvider = require ("@truffle/hdwallet-provider");
 
+const Web3 = require ("web3");
+const web3 = new Web3 ();
+
 module.exports = {
   compilers: {
     solc: {
@@ -46,6 +49,18 @@ module.exports = {
         },
       network_id: 1,
       gas: 1000000
+    },
+    xdai: {
+      provider: function ()
+        {
+          return new HDWalletProvider ({
+            privateKeys: [process.env.PRIVKEY],
+            providerOrUrl: "https://rpc.xdaichain.com/"
+          });
+        },
+      network_id: 100,
+      gas: 8000000,
+      gasPrice: web3.utils.toWei ('1', 'gwei')
     }
   },
   plugins: ["solidity-coverage"]
