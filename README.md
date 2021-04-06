@@ -24,6 +24,8 @@ a future Lightning implementation.
 
 We have deployed the contracts based on commit
 `52ee0049fa0798856f420d34e23bcc6be5f45ff4` as the official versions.
+The smart contracts at this revision have been [audited by
+Solidified](https://github.com/solidified-platform/audits/blob/master/Audit%20Report%20-%20WCHI%20%20%5B30.03.2021%5D.pdf).
 
 ### Ethereum
 
