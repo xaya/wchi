@@ -87,7 +87,18 @@ module.exports = {
       network_id: 100,
       gas: 8000000,
       gasPrice: web3.utils.toWei ('1', 'gwei')
-    }
+    },
+    bsc: {
+      provider: function ()
+        {
+          return new HDWalletProvider ({
+            privateKeys: [process.env.PRIVKEY],
+            providerOrUrl: "https://bsc-dataseed1.binance.org/"
+          });
+        },
+      network_id: 56,
+      gasPrice: web3.utils.toWei ('5', 'gwei')
+    },
   },
   plugins: ["solidity-coverage"]
 };

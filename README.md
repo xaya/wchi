@@ -66,3 +66,11 @@ use of the [OmniBridge](https://omni.xdaichain.com/bridge).  The addresses are:
 
 - WCHI: [0x7211ab649A4139561a152B787de52D257cbAAee9](https://blockscout.com/xdai/mainnet/address/0x7211ab649A4139561a152B787de52D257cbAAee9)
 - HTLCs: [0x39d1276C5421d3A9f8367F0C071DB4af242f5D8f](https://blockscout.com/xdai/mainnet/address/0x39d1276C5421d3A9f8367F0C071DB4af242f5D8f)
+
+### Binance Smart Chain (BSC)
+
+The HTCL contract has been deployed natively on BSC, and the WCHI token
+though the [AnySwap bridge](https://multichain.xyz/).  The addresses are:
+
+- WCHI: [0x22648c12acd87912ea1710357b1302c6a4154ebc](https://bscscan.com/address/0x22648c12acd87912ea1710357b1302c6a4154ebc)
+- HTLCs: [0xd1Ca5b7102E6Eca25AA259c1Ab4466BdC8C5bB58](https://bscscan.com/address/0xd1ca5b7102e6eca25aa259c1ab4466bdc8c5bb58)
