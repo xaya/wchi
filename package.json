@@ -1,0 +1,17 @@
+{
+  "name": "@xaya/wchi",
+  "version": "1.0.0",
+  "description": "The Solidity contract and project for the Xaya WCHI token.",
+  "author": "Daniel Kraft <daniel@xaya.io>",
+  "license": "MIT",
+  "homepage": "https://github.com/xaya/wchi",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xaya/wchi.git"
+  },
+  "files": [
+    "/contracts/*.sol",
+    "/build/contracts/*.json",
+    "README.md"
+  ]
+}
