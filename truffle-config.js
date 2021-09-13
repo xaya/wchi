@@ -76,6 +76,20 @@ module.exports = {
       timeoutBlocks: 200,
       gasPrice: web3.utils.toWei ('1', 'gwei')
     },
+    arb1: {
+      provider: function ()
+        {
+          return new HDWalletProvider ({
+            privateKeys: [process.env.PRIVKEY],
+            providerOrUrl: "https://arb1.arbitrum.io/rpc"
+          });
+        },
+      network_id: 42161,
+      confirmations: 2,
+      timeoutBlocks: 200,
+      gas: 50000000,
+      gasPrice: web3.utils.toWei ('2', 'gwei')
+    },
     xdai: {
       provider: function ()
         {

@@ -60,6 +60,15 @@ On the Mumbai testnet for Polygon, the contracts are these:
 - WCHI: [0x35AAfF0B6B0540a667A7f726d86A7644f6A6Eee8](https://explorer-mumbai.maticvigil.com/address/0x35AAfF0B6B0540a667A7f726d86A7644f6A6Eee8)
 - HTLCs: [0x39d1276C5421d3A9f8367F0C071DB4af242f5D8f](https://explorer-mumbai.maticvigil.com/address/0x39d1276C5421d3A9f8367F0C071DB4af242f5D8f)
 
+### Arbitrum One
+
+On Arbitrum One mainnet, the HTLC contract has been deployed directly,
+and the WCHI token has been created by the bridge (as a standard
+ERC-20 contract):
+
+- WCHI: [0xA64eCCe74F8CdB7a940766B71f1b108BAC69851a](https://arbiscan.io/address/0xA64eCCe74F8CdB7a940766B71f1b108BAC69851a)
+- HTLCs: [0xd1Ca5b7102E6Eca25AA259c1Ab4466BdC8C5bB58](https://arbiscan.io/address/0xd1ca5b7102e6eca25aa259c1ab4466bdc8c5bb58)
+
 ### xDai
 
 On xDai, we have deployed the HTLC contract natively, and WCHI through
